@@ -1,0 +1,6 @@
+{
+  "name": "Publish to CodeArtifact",
+  "description": "Build and publish a Python package to AWS CodeArtifact on release",
+  "iconName": "aws",
+  "categories": ["Python", "Deployment"]
+}

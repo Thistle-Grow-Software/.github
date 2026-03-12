@@ -1,0 +1,139 @@
+name: Python Quality Gates
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python version"
+        type: string
+        default: "3.14"
+      uv-sync-args:
+        description: "Arguments passed to uv sync"
+        type: string
+        default: "--group dev"
+      src-paths:
+        description: "Source paths for ruff and mypy"
+        type: string
+        default: "src/"
+      test-marker:
+        description: "Pytest marker to select tests (e.g. 'unit')"
+        type: string
+        default: "unit"
+      test-args:
+        description: "Additional pytest arguments"
+        type: string
+        default: ""
+      mypy-enabled:
+        description: "Run mypy type checking"
+        type: boolean
+        default: true
+      mypy-continue-on-error:
+        description: "Allow mypy failures without failing the build"
+        type: boolean
+        default: true
+      codecov-enabled:
+        description: "Upload coverage to Codecov"
+        type: boolean
+        default: false
+      codecov-slug:
+        description: "Codecov repository slug (e.g. 'Org/repo')"
+        type: string
+        default: ""
+      needs-codeartifact:
+        description: "Whether to authenticate with AWS CodeArtifact before installing"
+        type: boolean
+        default: false
+    secrets:
+      aws-role-arn:
+        description: "IAM role ARN for OIDC (required if needs-codeartifact)"
+        required: false
+      codeartifact-domain:
+        description: "CodeArtifact domain"
+        required: false
+      codeartifact-domain-owner:
+        description: "CodeArtifact domain owner (AWS account ID)"
+        required: false
+      codecov-token:
+        description: "Codecov upload token"
+        required: false
+
+jobs:
+  formatting:
+    name: Formatting
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Thistle-Grow-Software/.github/actions/setup-python-ci-env@main
+        with:
+          python-version: ${{ inputs.python-version }}
+          aws-role-to-assume: ${{ inputs.needs-codeartifact && secrets.aws-role-arn || '' }}
+          codeartifact-domain: ${{ inputs.needs-codeartifact && secrets.codeartifact-domain || '' }}
+          codeartifact-domain-owner: ${{ inputs.needs-codeartifact && secrets.codeartifact-domain-owner || '' }}
+
+      - name: Install dependencies
+        run: uv sync ${{ inputs.uv-sync-args }}
+
+      - name: Check formatting
+        run: uv run ruff format --check --diff .
+
+  linting:
+    name: Linting
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Thistle-Grow-Software/.github/actions/setup-python-ci-env@main
+        with:
+          python-version: ${{ inputs.python-version }}
+          aws-role-to-assume: ${{ inputs.needs-codeartifact && secrets.aws-role-arn || '' }}
+          codeartifact-domain: ${{ inputs.needs-codeartifact && secrets.codeartifact-domain || '' }}
+          codeartifact-domain-owner: ${{ inputs.needs-codeartifact && secrets.codeartifact-domain-owner || '' }}
+
+      - name: Install dependencies
+        run: uv sync ${{ inputs.uv-sync-args }}
+
+      - name: Ruff check
+        run: uv run ruff check ${{ inputs.src-paths }}
+
+      - name: Mypy
+        if: inputs.mypy-enabled
+        continue-on-error: ${{ inputs.mypy-continue-on-error }}
+        run: uv run mypy ${{ inputs.src-paths }}
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Thistle-Grow-Software/.github/actions/setup-python-ci-env@main
+        with:
+          python-version: ${{ inputs.python-version }}
+          aws-role-to-assume: ${{ inputs.needs-codeartifact && secrets.aws-role-arn || '' }}
+          codeartifact-domain: ${{ inputs.needs-codeartifact && secrets.codeartifact-domain || '' }}
+          codeartifact-domain-owner: ${{ inputs.needs-codeartifact && secrets.codeartifact-domain-owner || '' }}
+
+      - name: Install dependencies
+        run: uv sync ${{ inputs.uv-sync-args }}
+
+      - name: Run tests
+        run: uv run pytest -m "${{ inputs.test-marker }}" --cov-report=term --cov-report=xml ${{ inputs.test-args }}
+
+      - name: Upload coverage to Codecov
+        if: inputs.codecov-enabled
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          slug: ${{ inputs.codecov-slug }}
+          fail_ci_if_error: true
+          token: ${{ secrets.codecov-token }}

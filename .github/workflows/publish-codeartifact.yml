@@ -1,0 +1,74 @@
+name: Publish to CodeArtifact
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python version"
+        type: string
+        default: "3.14"
+      aws-region:
+        description: "AWS region"
+        type: string
+        default: "us-east-1"
+    secrets:
+      aws-role-arn:
+        description: "IAM role ARN for OIDC authentication"
+        required: true
+      codeartifact-domain:
+        description: "CodeArtifact domain name"
+        required: true
+      codeartifact-domain-owner:
+        description: "CodeArtifact domain owner (AWS account ID)"
+        required: true
+      codeartifact-repo:
+        description: "CodeArtifact repository name"
+        required: true
+
+jobs:
+  verify-tag:
+    name: Verify Release Tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify tag matches pyproject.toml version
+        run: |
+          PKG_VERSION=$(grep -E '^version = ' pyproject.toml | head -1 | cut -d'"' -f2)
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "pyproject.toml version: $PKG_VERSION"
+          echo "Release tag (stripped 'v' prefix): $TAG"
+          if [ "$PKG_VERSION" != "$TAG" ]; then
+            echo "::error::Version mismatch: pyproject.toml has '$PKG_VERSION' but release tag is '$GITHUB_REF_NAME'"
+            exit 1
+          fi
+          echo "Versions match."
+
+  publish:
+    name: Build & Publish
+    runs-on: ubuntu-latest
+    needs: verify-tag
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Thistle-Grow-Software/.github/actions/setup-python-ci-env@main
+        with:
+          python-version: ${{ inputs.python-version }}
+          aws-role-to-assume: ${{ secrets.aws-role-arn }}
+          codeartifact-domain: ${{ secrets.codeartifact-domain }}
+          codeartifact-domain-owner: ${{ secrets.codeartifact-domain-owner }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish to CodeArtifact
+        run: |
+          REPO_URL="https://aws:${CODEARTIFACT_AUTH_TOKEN}@${{ secrets.codeartifact-domain }}-${{ secrets.codeartifact-domain-owner }}.d.codeartifact.${{ inputs.aws-region }}.amazonaws.com/pypi/${{ secrets.codeartifact-repo }}/"
+          uv publish dist/* --publish-url "$REPO_URL"

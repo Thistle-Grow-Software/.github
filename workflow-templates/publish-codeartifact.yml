@@ -1,0 +1,13 @@
+name: Publish to CodeArtifact
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    uses: Thistle-Grow-Software/.github/.github/workflows/publish-codeartifact.yml@main
+    with:
+      # python-version: "3.14"
+      # aws-region: "us-east-1"
+    secrets: inherit

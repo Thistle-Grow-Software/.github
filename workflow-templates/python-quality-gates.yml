@@ -1,0 +1,20 @@
+name: Quality Gates
+
+on:
+  pull_request:
+    branches: [$default-branch]
+  push:
+    branches: [$default-branch]
+
+jobs:
+  quality-gates:
+    uses: Thistle-Grow-Software/.github/.github/workflows/python-quality-gates.yml@main
+    with:
+      # python-version: "3.14"
+      # uv-sync-args: "--group dev"
+      # src-paths: "src/"
+      # test-marker: "unit"
+      # mypy-enabled: true
+      # codecov-enabled: false
+      # needs-codeartifact: false
+    secrets: inherit

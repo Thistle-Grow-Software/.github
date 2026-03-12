@@ -1,0 +1,6 @@
+{
+  "name": "Python Quality Gates",
+  "description": "Ruff formatting, linting, mypy type checking, and pytest with coverage",
+  "iconName": "python",
+  "categories": ["Python"]
+}
