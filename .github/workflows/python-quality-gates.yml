@@ -130,7 +130,7 @@ jobs:
         run: >
           uv run pytest
           ${{ inputs.test-marker && format('-m "{0}"', inputs.test-marker) || '' }}
-          --cov-report=term --cov-report=xml
+          ${{ inputs.codecov-enabled && '--cov-report=term --cov-report=xml' || '' }}
           ${{ inputs.test-args }}
 
       - name: Upload coverage to Codecov
