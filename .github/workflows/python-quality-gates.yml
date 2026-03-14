@@ -16,9 +16,9 @@ on:
         type: string
         default: "src/"
       test-marker:
-        description: "Pytest marker to select tests (e.g. 'unit')"
+        description: "Pytest marker to select tests (e.g. 'unit'). Leave empty to run all tests."
         type: string
-        default: "unit"
+        default: ""
       test-args:
         description: "Additional pytest arguments"
         type: string
@@ -127,7 +127,11 @@ jobs:
         run: uv sync ${{ inputs.uv-sync-args }}
 
       - name: Run tests
-        run: uv run pytest -m "${{ inputs.test-marker }}" --cov-report=term --cov-report=xml ${{ inputs.test-args }}
+        run: >
+          uv run pytest
+          ${{ inputs.test-marker && format('-m "{0}"', inputs.test-marker) || '' }}
+          --cov-report=term --cov-report=xml
+          ${{ inputs.test-args }}
 
       - name: Upload coverage to Codecov
         if: inputs.codecov-enabled

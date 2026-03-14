@@ -13,7 +13,7 @@ jobs:
       # python-version: "3.14"
       # uv-sync-args: "--group dev"
       # src-paths: "src/"
-      # test-marker: "unit"
+      # test-marker: ""
       # mypy-enabled: true
       # codecov-enabled: false
       # needs-codeartifact: false
