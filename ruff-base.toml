@@ -1,0 +1,36 @@
+# Thistle-Grow-Software — Ruff Baseline Configuration
+#
+# This file documents the org-wide ruff standards. Individual repos maintain
+# their own [tool.ruff] section in pyproject.toml but should stay aligned
+# with this baseline.
+#
+# Since ruff's `extend` only supports local paths, this file serves as a
+# reference. Copy the relevant sections into your pyproject.toml.
+
+line-length = 88
+target-version = "py314"
+src = ["src", "tests"]
+
+[lint]
+# Required rules across all repos:
+#   E  — pycodestyle errors
+#   F  — pyflakes
+#   I  — isort
+#
+# Recommended additions (adopt per-repo as appropriate):
+#   W   — pycodestyle warnings
+#   B   — flake8-bugbear
+#   UP  — pyupgrade
+#   SIM — flake8-simplify
+#   RUF — ruff-specific rules
+#   C4  — flake8-comprehensions
+#   T20 — flake8-print
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[lint.isort]
+# Override known-first-party per repo (e.g. ["griddy"], ["fbcm"])
+known-first-party = []
+
+[format]
+docstring-code-format = true
